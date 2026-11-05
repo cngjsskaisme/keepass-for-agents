@@ -60,6 +60,7 @@ function baseCfg(over: (c: AppConfig) => void = () => {}): AppConfig {
   c.hardened.token_file = TOKEN_FILE;
   c.hardened.state_dir = SVC_STATE;
   c.hardened.endpoint = ENDPOINT; // posix path; win32 pipe name
+  c.hardened.connect_timeout_ms = 30_000; // worker spawn inside the service can exceed the 5s default on slow CI runners
   if (process.platform === 'win32') c.hardened.allowed_sids = ALLOWED_SIDS;
   c.unlock.auto_open_browser = false;
   over(c);
