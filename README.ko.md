@@ -8,7 +8,9 @@
   기존 KeePass 저장소를 AI 에이전트에 연결하는 로컬 인증 게이트웨이입니다.
   비밀번호를 직접 전달하는 대신, 허용된 로그인 작업만 실행하도록 설계했습니다.
 
-  [**빠른 시작**](docs/ko/quickstart.md) · [**MCP 연결**](docs/ko/mcp.md) · [**보안과 한계**](docs/ko/security.md) · [**English**](README.md)
+  📖 **[문서 사이트](https://cngjsskaisme.github.io/keepass-for-agents/ko/)** — 가장 읽기 편한 가이드 (한국어 · English)
+
+  [빠른 시작](docs/ko/quickstart.md) · [MCP 연결](docs/ko/mcp.md) · [보안과 한계](docs/ko/security.md) · [English](README.md)
 </div>
 
 ---

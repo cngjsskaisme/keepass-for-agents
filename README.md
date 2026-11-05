@@ -8,7 +8,9 @@
   A local, KeePass-backed credential gateway for AI agents.
   Connect an existing KDBX database, approve authentication tasks, and use the gateway through CLI or MCP.
 
-  [**Quick start**](docs/quickstart.md) · [**MCP setup**](docs/mcp.md) · [**Security & limits**](docs/security.md) · [**한국어**](README.ko.md)
+  📖 **[Documentation site](https://cngjsskaisme.github.io/keepass-for-agents/)** — the easiest way to read the guides (English · 한국어)
+
+  [Quick start](docs/quickstart.md) · [MCP setup](docs/mcp.md) · [Security & limits](docs/security.md) · [한국어](README.ko.md)
 </div>
 
 ---
