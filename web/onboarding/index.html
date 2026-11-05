@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title data-i18n="ob_title">KeePass for agents — first run</title>
+<style>
+  :root { color-scheme: light dark; --accent: #2670dc; }
+  * { box-sizing: border-box; }
+  body { font-family: system-ui, sans-serif; max-width: 520px; margin: 6vh auto; padding: 0 18px 40px; }
+  .card { border: 1px solid #8884; border-radius: 14px; padding: 26px; margin-top: 18px; }
+  h1 { font-size: 24px; margin: 0 0 5px; }
+  h2 { font-size: 16px; margin: 0 0 8px; }
+  .sub { color: #888; font-size: 13px; line-height: 1.5; }
+  p, li { font-size: 14px; line-height: 1.6; }
+  ol { padding-left: 22px; }
+  a { color: var(--accent); }
+  .promise { border-left: 3px solid var(--accent); padding: 4px 0 4px 12px; margin: 12px 0; }
+  .links a { display: inline-block; margin-right: 14px; font-size: 14px; }
+  .lang { position: fixed; top: 10px; right: 12px; display: flex; gap: 4px; }
+  .lang button { width: auto; padding: 3px 9px; margin: 0; font-size: 12px; background: transparent; border: 1px solid #8886; color: #888; border-radius: 8px; cursor: pointer; }
+  .lang button.on { border-color: var(--accent); color: var(--accent); font-weight: 700; }
+</style>
+</head>
+<body>
+<div class="lang">
+  <button type="button" data-lang="en">EN</button>
+  <button type="button" data-lang="ko">한국어</button>
+</div>
+<main>
+  <h1 data-i18n="ob_h1">KeePass for agents</h1>
+  <div class="sub" data-i18n="ob_tagline">A local credential gateway — agents get logins without ever seeing your secrets.</div>
+
+  <section class="card">
+    <h2 data-i18n="ob_what_h">What you just saw</h2>
+    <p data-i18n="ob_what_p">An agent (a CLI tool, MCP server, or script running on this PC) asked to use one of your KeePass databases — for example to unlock it, add an entry, or sync browser cookies. This page opened so that you, the operator, can approve or deny that request. Nothing happens without your approval here.</p>
+  </section>
+
+  <section class="card">
+    <h2 data-i18n="ob_promise_h">The security promise</h2>
+    <div class="promise"><p data-i18n="ob_promise_p">Your master password travels only from this browser window to the local keepass-agent server on 127.0.0.1, encrypted end to end. It never reaches the agent, never leaves this PC, and is never written to disk or logs.</p></div>
+    <p data-i18n="ob_promise_p2">The agent only ever receives the task result (for example, a filled login form or a stored cookie set) — not the credentials themselves.</p>
+  </section>
+
+  <section class="card">
+    <h2 data-i18n="ob_steps_h">How to approve a request</h2>
+    <ol>
+      <li data-i18n="ob_step1">Check the database alias and the requesting agent shown on the approval page.</li>
+      <li data-i18n="ob_step2">Enter the master password (and pick a session lifetime).</li>
+      <li data-i18n="ob_step3">Press the action button — or Cancel to deny the request.</li>
+    </ol>
+  </section>
+
+  <section class="card links">
+    <h2 data-i18n="ob_docs_h">Read more</h2>
+    <a href="https://github.com/cngjsskaisme/keepass-for-agents/blob/main/docs/quickstart.md" target="_blank" rel="noopener" data-i18n="ob_link_quickstart">Quickstart guide</a>
+    <a href="https://github.com/cngjsskaisme/keepass-for-agents/blob/main/docs/security.md" target="_blank" rel="noopener" data-i18n="ob_link_security">Security model</a>
+  </section>
+</main>
+<script>
+// --- i18n: English default; Korean client-side (?lang → kp-lang → 'en'). ---
+const STRINGS = {
+  en: {
+    ob_title: 'KeePass for agents — first run',
+    ob_h1: 'KeePass for agents',
+    ob_tagline: 'A local credential gateway — agents get logins without ever seeing your secrets.',
+    ob_what_h: 'What you just saw',
+    ob_what_p: 'An agent (a CLI tool, MCP server, or script running on this PC) asked to use one of your KeePass databases — for example to unlock it, add an entry, or sync browser cookies. This page opened so that you, the operator, can approve or deny that request. Nothing happens without your approval here.',
+    ob_promise_h: 'The security promise',
+    ob_promise_p: 'Your master password travels only from this browser window to the local keepass-agent server on 127.0.0.1, encrypted end to end. It never reaches the agent, never leaves this PC, and is never written to disk or logs.',
+    ob_promise_p2: 'The agent only ever receives the task result (for example, a filled login form or a stored cookie set) — not the credentials themselves.',
+    ob_steps_h: 'How to approve a request',
+    ob_step1: 'Check the database alias and the requesting agent shown on the approval page.',
+    ob_step2: 'Enter the master password (and pick a session lifetime).',
+    ob_step3: 'Press the action button — or Cancel to deny the request.',
+    ob_docs_h: 'Read more',
+    ob_link_quickstart: 'Quickstart guide',
+    ob_link_security: 'Security model',
+  },
+  ko: {
+    ob_title: 'KeePass for agents — 첫 실행',
+    ob_h1: 'KeePass for agents',
+    ob_tagline: '로컬 자격 증명 게이트웨이 — 에이전트는 비밀을 보지 않고 로그인만 수행합니다.',
+    ob_what_h: '방금 무슨 일이 있었나요',
+    ob_what_p: '에이전트(이 PC에서 실행 중인 CLI 도구, MCP 서버, 스크립트)가 KeePass 데이터베이스 사용을 요청했습니다 — 예를 들어 잠금 해제, 엔트리 추가, 브라우저 쿠키 동기화 등입니다. 이 페이지는 운영자인 당신이 그 요청을 승인하거나 거부할 수 있도록 열렸습니다. 여기서 승인하지 않으면 아무 일도 일어나지 않습니다.',
+    ob_promise_h: '보안 약속',
+    ob_promise_p: '마스터 비밀번호는 이 브라우저 창에서 127.0.0.1의 로컬 keepass-agent 서버로만, 끝단 암호화되어 전달됩니다. 에이전트에게는 절대 전달되지 않고, 이 PC를 벗어나지도 않으며, 디스크나 로그에도 기록되지 않습니다.',
+    ob_promise_p2: '에이전트가 받는 것은 작업 결과(예: 채워진 로그인 폼, 저장된 쿠키 세트)뿐입니다 — 자격 증명 자체는 절대 받지 않습니다.',
+    ob_steps_h: '요청 승인 방법',
+    ob_step1: '승인 페이지에 표시된 데이터베이스 별칭과 요청 에이전트를 확인하세요.',
+    ob_step2: '마스터 비밀번호를 입력하고 (세션 유지 시간을 선택하세요).',
+    ob_step3: '실행 버튼을 누르세요 — 거부하려면 취소를 누르세요.',
+    ob_docs_h: '더 읽어보기',
+    ob_link_quickstart: '빠른 시작 가이드',
+    ob_link_security: '보안 모델',
+  },
+};
+let LANG = 'en';
+const fill = (s, v) => (v ? s.replace(/\{(\w+)\}/g, (m, k) => (v[k] ?? m)) : s);
+function t(key, vars) { return fill(STRINGS[LANG]?.[key] ?? STRINGS.en[key] ?? key, vars); }
+function applyLang(lang) {
+  LANG = STRINGS[lang] ? lang : 'en';
+  document.documentElement.lang = LANG;
+  document.querySelectorAll('[data-i18n]').forEach((el) => {
+    const key = el.dataset.i18n;
+    let v = STRINGS[LANG][key] ?? STRINGS.en[key];
+    if (v == null) return;
+    if (el.dataset.i18nVars) {
+      let vars;
+      try { vars = JSON.parse(el.dataset.i18nVars); } catch {}
+      v = fill(v, vars);
+    }
+    el.textContent = el.tagName === 'TITLE' ? v + ' - KeePass Agent' : v;
+  });
+  document.querySelectorAll('[data-i18n-placeholder]').forEach((el) => {
+    const v = STRINGS[LANG][el.dataset.i18nPlaceholder] ?? STRINGS.en[el.dataset.i18nPlaceholder];
+    if (v != null) el.placeholder = v;
+  });
+  document.querySelectorAll('[data-i18n-title]').forEach((el) => {
+    const v = STRINGS[LANG][el.dataset.i18nTitle] ?? STRINGS.en[el.dataset.i18nTitle];
+    if (v != null) el.title = v;
+  });
+  document.querySelectorAll('.lang button').forEach((b) => { b.classList.toggle('on', b.dataset.lang === LANG); });
+}
+function setLang(lang) {
+  try { localStorage.setItem('kp-lang', lang); } catch {}
+  applyLang(lang);
+}
+if (document.querySelectorAll) {
+  document.querySelectorAll('.lang [data-lang]').forEach((b) =>
+    b.addEventListener('click', () => setLang(b.dataset.lang)));
+  let wanted = null;
+  try { wanted = new URLSearchParams(location.search).get('lang') || localStorage.getItem('kp-lang'); } catch {}
+  applyLang(wanted || 'en');
+}
+</script>
+</body>
+</html>

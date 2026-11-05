@@ -1,0 +1,14 @@
+# Python helpers (src/keepass/*.py) — PyKeePass path used for db create,
+# entry add/update, and all KPScript-free POSIX operations.
+# Resolved set verified installable on Python 3.10+.
+pykeepass==4.2.0
+construct==2.10.70
+lxml==6.0.2
+pycryptodomex==3.23.0
+argon2-cffi==25.1.0
+argon2-cffi-bindings==25.1.0
+cffi==1.17.1
+pycparser==3.11
+pyotp==2.9.0
+importlib-metadata==9.0.1
+zipp==4.1.2

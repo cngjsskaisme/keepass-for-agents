@@ -1,0 +1,50 @@
+# Top-level schema marker — written by every save. Files without it are
+# pre-versioned (v0) and upgrade in memory on load; `kp config migrate` persists.
+schema_version = 1
+
+[keepass]
+executable = "C:/Program Files/KeePass Password Safe 2/KeePass.exe"
+kpscript = "C:/Program Files/KeePass Password Safe 2/KPScript.exe"
+default_database = "personal"
+
+[databases.personal]
+path = "D:/Secrets/Personal.kdbx"
+key_file = "D:/Secrets/Personal.keyx"
+unlock_method = "local-web"
+session_timeout = 900
+
+[databases.work]
+path = "D:/Secrets/Work.kdbx"
+unlock_method = "keepass-gui"
+session_timeout = 300
+
+[unlock]
+host = "127.0.0.1"
+port = 8765
+auto_open_browser = true
+
+# --- Policy (PR-06) -------------------------------------------------------
+# Deny-by-default: every kp command is evaluated against the declared agent's
+# policy (KEEPASS_AGENT_ID or --agent <id>; unset → agent "default"). An
+# action not listed in `allowed` or `require_approval` is DENIED
+# (POLICY_DENIED). Editing this file is governed by OS file permissions;
+# `kp config set` policy changes are audit-logged.
+[policy]
+audit_max_bytes = 1048576            # rotate audit.log → audit.log.1 above this
+
+# Unidentified callers — keep this tight or delete it entirely (then
+# unauthenticated callers get nothing).
+[agents.default]
+allowed = ["db.list", "db.current", "status"]
+
+# A read/search agent that may unlock but cannot run workers.
+[agents.scout]
+allowed = ["search", "db.list", "db.current", "db.info", "status", "unlock", "lock", "audit.read"]
+
+# A login agent restricted to specific credentials and destination hosts.
+[agents.webbot]
+allowed = ["search", "db.list", "status", "unlock", "login", "entry.login-capture"]
+require_approval = ["entry.add", "entry.sync-cookies"]
+allowed_entries = ["github.com", "*.corp.local", "uuid:AB12CD34"]  # title/host globs or uuid:<id>
+denied_entries = ["*prod*"]                                      # always wins
+allowed_hosts = ["github.com", "*.corp.local"]                   # worker login URL hosts

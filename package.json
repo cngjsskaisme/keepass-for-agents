@@ -1,0 +1,58 @@
+{
+  "name": "keepass-agent",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "KeePass 2 credential gateway for AI agents — secrets never reach agent output",
+  "license": "MIT",
+  "author": "Nougat",
+  "keywords": [
+    "keepass",
+    "kdbx",
+    "kpscript",
+    "credentials",
+    "secrets",
+    "ai-agent",
+    "mcp",
+    "cli"
+  ],
+  "bin": {
+    "kp": "./bin/kp"
+  },
+  "files": [
+    "bin",
+    "src",
+    "web",
+    "tools",
+    "docs",
+    "examples",
+    "LICENSE",
+    "README.md",
+    "README.ko.md",
+    "AGENTS.md",
+    "requirements.txt",
+    "tsconfig.json"
+  ],
+  "scripts": {
+    "kp": "node src/cli/kp.ts",
+    "doctor": "node src/cli/kp.ts doctor",
+    "verify:artifact": "node tools/verify-artifact.mjs",
+    "test": "node --test \"tests/**/*.test.ts\"",
+    "typecheck": "tsc --noEmit",
+    "lint:py": "node -e \"const{spawnSync}=require('node:child_process');const r=spawnSync('ruff',['check','--select','E4,E7,E9,F','src/keepass'],{stdio:'inherit'});if(r.error){console.log('ruff not installed - skipping python lint');process.exit(0)}process.exit(r.status??1)\"",
+    "check": "npm run typecheck && npm test",
+    "docs:dev": "vitepress dev docs",
+    "docs:build": "vitepress build docs",
+    "docs:preview": "vitepress preview docs"
+  },
+  "dependencies": {
+    "iconv-lite": "^0.4.24"
+  },
+  "engines": {
+    "node": ">=22.18 || >=23.6"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.5",
+    "typescript": "^7.0.2",
+    "vitepress": "^1.6.4"
+  }
+}

@@ -1,0 +1,10 @@
+/* The nav logo is the full horizontal lockup (icon + wordmark),
+   so the plain-text site title would be redundant. */
+.VPNavBarTitle .title span {
+  display: none;
+}
+
+.VPNavBarTitle img.logo {
+  height: 28px;
+  width: auto;
+}

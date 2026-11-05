@@ -1,0 +1,12 @@
+.venv/
+__pycache__/
+*.py[cod]
+*.kdbx
+*.key
+*.keyx
+node_modules/
+test-data/
+tmp/
+*.log
+docs/.vitepress/cache/
+docs/.vitepress/dist/

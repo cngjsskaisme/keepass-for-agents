@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+# kp — KeePass agent CLI (thin entrypoint; logic lives in src/)
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+exec node "$HERE/src/cli/kp.ts" "$@"

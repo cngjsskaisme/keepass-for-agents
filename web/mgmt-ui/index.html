@@ -1,0 +1,423 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title data-i18n="console_title">Operator console - KeePass Agent</title>
+<style>
+  :root { color-scheme: light dark; --accent: #2670dc; }
+  * { box-sizing: border-box; }
+  body { font-family: system-ui, sans-serif; max-width: 960px; margin: 24px auto; padding: 0 18px 60px; }
+  header.top { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; }
+  h1 { font-size: 22px; margin: 0; }
+  h2 { font-size: 16px; margin: 0 0 10px; }
+  .badge { font-size: 12px; border: 1px solid #8886; border-radius: 99px; padding: 2px 10px; color: #888; }
+  .sub { color: #888; font-size: 13px; }
+  section { border: 1px solid #8884; border-radius: 12px; padding: 18px; margin-top: 20px; }
+  table { border-collapse: collapse; width: 100%; font-size: 13px; }
+  th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid #8883; vertical-align: top; overflow-wrap: anywhere; }
+  th { color: #888; font-weight: 600; white-space: nowrap; }
+  input:not([type=checkbox]), select { padding: 8px; font-size: 13px; border: 1px solid #8886; border-radius: 6px; background: Canvas; color: CanvasText; width: 100%; }
+  .filters { display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
+  .filters input { width: auto; min-width: 120px; }
+  button { padding: 8px 14px; font-size: 13px; border: 0; border-radius: 6px; cursor: pointer; background: var(--accent); color: #fff; font-weight: 600; }
+  button.ghost { background: transparent; border: 1px solid #8886; color: CanvasText; }
+  button.danger { background: #dc2626; }
+  button.small { padding: 4px 10px; font-size: 12px; }
+  button:disabled { opacity: .5; cursor: default; }
+  .st-UNLOCKED { color: #16a34a; font-weight: 700; }
+  .st-LOCKED { color: #dc2626; font-weight: 700; }
+  .st-EXPIRED, .st-UNAVAILABLE { color: #d97706; font-weight: 700; }
+  #msg { font-size: 13px; margin-top: 10px; min-height: 18px; }
+  .err { color: #dc2626; } .okm { color: #16a34a; }
+  fieldset.agent { border: 1px solid #8885; border-radius: 8px; margin: 0 0 14px; padding: 12px; }
+  fieldset.agent legend { font-weight: 700; font-size: 14px; padding: 0 6px; }
+  .agrid { display: grid; grid-template-columns: 150px 1fr; gap: 6px 10px; align-items: center; font-size: 13px; }
+  .agrid label { color: #888; font-size: 12px; }
+  .arow { display: flex; gap: 8px; margin-top: 10px; }
+  .mono { font-family: ui-monospace, Consolas, monospace; font-size: 12px; }
+  .right { margin-left: auto; }
+  .lang { display: flex; gap: 4px; }
+  .lang button { width: auto; padding: 3px 9px; font-size: 12px; background: transparent; border: 1px solid #8886; color: #888; }
+  .lang button.on { border-color: var(--accent); color: var(--accent); font-weight: 700; }
+  a { color: var(--accent); }
+</style>
+</head>
+<body>
+<header class="top">
+  <h1 data-i18n="console_h1">KeePass Agent — Operator console</h1>
+  <span class="badge" id="mode-badge">mode: …</span>
+  <span class="badge" id="agent-badge">agent: {{LAUNCH_AGENT}}</span>
+  <span class="sub" data-i18n="ttl" data-i18n-vars='{"s":"{{TTL_S}}"}'>Session expires: auto-exit in {{TTL_S}}s</span>
+  <a class="sub" href="https://github.com/cngjsskaisme/keepass-for-agents/blob/main/docs/quickstart.md" target="_blank" rel="noopener" data-i18n="guide">Guide</a>
+  <span class="lang right">
+    <button type="button" data-lang="en">EN</button>
+    <button type="button" data-lang="ko">한국어</button>
+  </span>
+  <button class="ghost small" id="btn-shutdown" type="button" data-i18n="shutdown">Shut down console</button>
+</header>
+<div id="msg" aria-live="polite"></div>
+
+<section>
+  <h2 data-i18n="dbs_h">Databases / sessions</h2>
+  <div class="filters"><button class="ghost small" id="btn-dbs-reload" type="button" data-i18n="reload">Reload</button></div>
+  <table>
+    <thead><tr><th data-i18n="th_alias">Alias</th><th data-i18n="th_state">State</th><th data-i18n="th_path">Path</th><th data-i18n="th_default">Default</th><th data-i18n="th_actions">Actions</th></tr></thead>
+    <tbody id="dbs-body"><tr><td colspan="5" class="sub" data-i18n="loading">Loading…</td></tr></tbody>
+  </table>
+</section>
+
+<section>
+  <h2 data-i18n="auth_h">Authorization requests</h2>
+  <div class="sub" style="margin-bottom:10px" data-i18n="auth_sub">Shows only login, entry, unlock, and cookies events from the audit log.</div>
+  <table>
+    <thead><tr><th data-i18n="th_time">Time</th><th data-i18n="th_agent">Agent</th><th data-i18n="th_action">Action</th><th data-i18n="th_target">Target</th><th data-i18n="th_decision">Decision</th><th data-i18n="th_result">Result</th><th>DB</th></tr></thead>
+    <tbody id="auth-body"><tr><td colspan="7" class="sub" data-i18n="loading">Loading…</td></tr></tbody>
+  </table>
+</section>
+
+<section>
+  <h2 data-i18n="audit_h">Audit log</h2>
+  <div class="filters">
+    <input id="f-agent" data-i18n-placeholder="ph_agent" placeholder="agent filter">
+    <input id="f-action" data-i18n-placeholder="ph_action" placeholder="action filter">
+    <input id="f-limit" data-i18n-placeholder="ph_limit" placeholder="last N" value="100" inputmode="numeric" style="width:90px">
+    <button class="ghost small" id="btn-audit-reload" type="button" data-i18n="query">Query</button>
+  </div>
+  <table>
+    <thead><tr><th data-i18n="th_time">Time</th><th data-i18n="th_agent">Agent</th><th data-i18n="th_action">Action</th><th data-i18n="th_target">Target</th><th data-i18n="th_decision">Decision</th><th data-i18n="th_result">Result</th><th>DB</th></tr></thead>
+    <tbody id="audit-body"><tr><td colspan="7" class="sub" data-i18n="loading">Loading…</td></tr></tbody>
+  </table>
+</section>
+
+<section>
+  <h2 data-i18n="agents_h">Agent permissions ([agents.*])</h2>
+  <div class="sub" style="margin-bottom:12px" data-i18n="agents_sub">
+    Lists are comma-separated (e.g. search, db.list, ui.dbs). An empty field removes it.
+    Actions are deny-by-default — anything not listed is denied.
+  </div>
+  <div id="agents-list"></div>
+  <fieldset class="agent">
+    <legend data-i18n="new_agent">New agent</legend>
+    <div class="agrid">
+      <label for="new-agent-name" data-i18n="name_label">Name</label>
+      <input id="new-agent-name" placeholder="[a-z0-9_-]{1,64}">
+    </div>
+    <div class="arow"><button class="small" id="btn-agent-new" type="button" data-i18n="add">Add</button></div>
+  </fieldset>
+</section>
+
+<script>
+// --- i18n: English is the default; Korean is applied client-side. ---
+// Resolution: ?lang=en|ko → localStorage['kp-lang'] → 'en' (shared with the
+// other kp web pages). Translations land via textContent/placeholder only.
+const STRINGS = {
+  en: {
+    console_title: 'Operator console', console_h1: 'KeePass Agent — Operator console',
+    ttl: 'Session expires: auto-exit in {s}s', guide: 'Guide',
+    shutdown: 'Shut down console', reload: 'Reload', query: 'Query',
+    dbs_h: 'Databases / sessions', auth_h: 'Authorization requests',
+    auth_sub: 'Shows only login, entry, unlock, and cookies events from the audit log.',
+    audit_h: 'Audit log', agents_h: 'Agent permissions ([agents.*])',
+    agents_sub: 'Lists are comma-separated (e.g. search, db.list, ui.dbs). An empty field removes it. Actions are deny-by-default — anything not listed is denied.',
+    new_agent: 'New agent', name_label: 'Name', add: 'Add',
+    th_alias: 'Alias', th_state: 'State', th_path: 'Path', th_default: 'Default',
+    th_actions: 'Actions', th_time: 'Time', th_agent: 'Agent', th_action: 'Action',
+    th_target: 'Target', th_decision: 'Decision', th_result: 'Result',
+    ph_agent: 'agent filter', ph_action: 'action filter', ph_limit: 'last N',
+    loading: 'Loading…', no_records: 'No records.',
+    token_invalid: 'The console session token is invalid. Run kp ui again.',
+    no_dbs: 'No databases are registered.', missing: ' (missing)',
+    unlock: 'Unlock', revoke: 'Revoke session',
+    revoking: '{a} revoking session…', revoked: '{a} session revoked.',
+    revoke_fail: 'Session revoke failed: ',
+    approval_creating: '{a} creating approval request…',
+    approval_opened: '{a} approval page opened. Reload after completing it.',
+    approval_fail: 'Approval request failed: ',
+    f_allowed: 'allowed (allowed actions)', f_require_approval: 'require_approval (requires approval)',
+    no_agents: 'No agent policies are registered.',
+    save: 'Save', del: 'Delete',
+    saving: '{a} saving policy…', saved: '{a} policy saved.', save_fail: 'Save failed: ',
+    del_confirm: 'Delete the agents.{a} policy?', deleted: '{a} policy deleted.', del_fail: 'Delete failed: ',
+    name_required: 'Enter an agent name.', agent_added: '{a} agent added.', add_fail: 'Add failed: ',
+    shutdown_confirm: 'Shut down the management console? (The kp ui process will exit too)',
+    shutdown_done: 'The console has shut down. You may close this tab.',
+  },
+  ko: {
+    console_title: '운영자 콘솔', console_h1: 'KeePass Agent — 운영자 콘솔',
+    ttl: '세션 만료: {s}초 후 자동 종료', guide: '가이드',
+    shutdown: '콘솔 종료', reload: '새로고침', query: '조회',
+    dbs_h: '데이터베이스 / 세션', auth_h: '인증 요청 내역',
+    auth_sub: '감사 기록 중 login·entry·unlock·cookies 관련 이벤트만 표시합니다.',
+    audit_h: '감사 기록', agents_h: '에이전트 권한 ([agents.*])',
+    agents_sub: '목록은 쉼표로 구분합니다 (예: search, db.list, ui.dbs). 빈 칸은 해당 필드를 제거합니다. 액션은 deny-by-default — 목록에 없는 액션은 거부됩니다.',
+    new_agent: '새 에이전트', name_label: '이름', add: '추가',
+    th_alias: '별칭', th_state: '상태', th_path: '경로', th_default: '기본',
+    th_actions: '동작', th_time: '시각', th_agent: '에이전트', th_action: '액션',
+    th_target: '대상', th_decision: '결정', th_result: '결과',
+    ph_agent: 'agent 필터', ph_action: 'action 필터', ph_limit: '최근 N건',
+    loading: '불러오는 중…', no_records: '기록이 없습니다.',
+    token_invalid: '콘솔 세션 토큰이 무효입니다. kp ui를 다시 실행하세요.',
+    no_dbs: '등록된 데이터베이스가 없습니다.', missing: ' (없음)',
+    unlock: '잠금 해제', revoke: '세션 폐기',
+    revoking: '{a} 세션 폐기 중…', revoked: '{a} 세션을 폐기했습니다.',
+    revoke_fail: '세션 폐기 실패: ',
+    approval_creating: '{a} 승인 요청 생성 중…',
+    approval_opened: '{a} 승인 페이지를 열었습니다. 완료 후 새로고침하세요.',
+    approval_fail: '승인 요청 실패: ',
+    f_allowed: 'allowed (허용 액션)', f_require_approval: 'require_approval (승인 필요)',
+    no_agents: '등록된 에이전트 정책이 없습니다.',
+    save: '저장', del: '삭제',
+    saving: '{a} 정책 저장 중…', saved: '{a} 정책을 저장했습니다.', save_fail: '저장 실패: ',
+    del_confirm: 'agents.{a} 정책을 삭제할까요?', deleted: '{a} 정책을 삭제했습니다.', del_fail: '삭제 실패: ',
+    name_required: '에이전트 이름을 입력하세요.', agent_added: '{a} 에이전트를 추가했습니다.', add_fail: '추가 실패: ',
+    shutdown_confirm: '관리 콘솔을 종료할까요? (kp ui 프로세스도 함께 종료됩니다)',
+    shutdown_done: '콘솔이 종료됐습니다. 이 탭을 닫아도 됩니다.',
+  },
+};
+let LANG = 'en';
+const fill = (s, v) => (v ? s.replace(/\{(\w+)\}/g, (m, k) => (v[k] ?? m)) : s);
+function t(key, vars) { return fill(STRINGS[LANG]?.[key] ?? STRINGS.en[key] ?? key, vars); }
+function applyLang(lang) {
+  LANG = STRINGS[lang] ? lang : 'en';
+  document.documentElement.lang = LANG;
+  document.querySelectorAll('[data-i18n]').forEach((el) => {
+    const key = el.dataset.i18n;
+    let v = STRINGS[LANG][key] ?? STRINGS.en[key];
+    if (v == null) return;
+    if (el.dataset.i18nVars) {
+      let vars;
+      try { vars = JSON.parse(el.dataset.i18nVars); } catch {}
+      v = fill(v, vars);
+    }
+    el.textContent = el.tagName === 'TITLE' ? v + ' - KeePass Agent' : v;
+  });
+  document.querySelectorAll('[data-i18n-placeholder]').forEach((el) => {
+    const v = STRINGS[LANG][el.dataset.i18nPlaceholder] ?? STRINGS.en[el.dataset.i18nPlaceholder];
+    if (v != null) el.placeholder = v;
+  });
+  document.querySelectorAll('[data-i18n-title]').forEach((el) => {
+    const v = STRINGS[LANG][el.dataset.i18nTitle] ?? STRINGS.en[el.dataset.i18nTitle];
+    if (v != null) el.title = v;
+  });
+  document.querySelectorAll('.lang button').forEach((b) => { b.classList.toggle('on', b.dataset.lang === LANG); });
+}
+function setLang(lang) {
+  try { localStorage.setItem('kp-lang', lang); } catch {}
+  applyLang(lang);
+  // Re-render dynamic rows so runtime strings follow the new language.
+  loadDbs(); loadAudit(); loadAgents();
+}
+if (document.querySelectorAll) {
+  document.querySelectorAll('.lang [data-lang]').forEach((b) =>
+    b.addEventListener('click', () => setLang(b.dataset.lang)));
+  let wanted = null;
+  try { wanted = new URLSearchParams(location.search).get('lang') || localStorage.getItem('kp-lang'); } catch {}
+  applyLang(wanted || 'en');
+}
+
+// The API token is embedded in this page once (the launch URL's one-time
+// page token never reaches the page). It is sent as a header on every API
+// call — never re-exposed in URLs or logs.
+const UI_TOKEN = {{TOKEN}};
+
+// Rendering contract (stored-XSS defence): dynamic data NEVER goes through
+// HTML-parsing sinks — every value lands via textContent, element
+// properties (.value/.textContent), or setAttribute with fixed names.
+// Click targets travel in JS closures, not data-* attributes.
+
+const msg = document.getElementById('msg');
+function say(text, isErr) { msg.className = isErr ? 'err' : 'okm'; msg.textContent = text; }
+
+async function api(path, opts) {
+  const o = opts || {};
+  const headers = Object.assign({ 'x-kp-ui-token': UI_TOKEN }, o.headers || {});
+  const r = await fetch(path, { method: o.method || 'GET', headers, body: o.body, cache: 'no-store' });
+  let j = null;
+  try { j = await r.json(); } catch {}
+  if (r.status === 401) { say(t('token_invalid'), true); }
+  return { status: r.status, json: j };
+}
+const apiPost = (path, body) => api(path, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body || {}) });
+const errText = (r) => (r.json && (r.json.detail || r.json.code)) || ('HTTP ' + r.status);
+
+function el(tag, cls, text) {
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (text != null) e.textContent = text;
+  return e;
+}
+function td(text, cls) { return el('td', cls, text == null ? '' : String(text)); }
+function msgRow(tbody, colspan, text, cls) {
+  tbody.textContent = '';
+  const tr = el('tr');
+  const c = td(text, cls || 'sub');
+  c.colSpan = colspan;
+  tr.appendChild(c);
+  tbody.appendChild(tr);
+}
+function mkBtn(cls, text, onClick) {
+  const b = el('button', cls, text);
+  b.type = 'button';
+  b.addEventListener('click', onClick);
+  return b;
+}
+
+// --- databases / sessions ---
+async function loadDbs() {
+  const body = document.getElementById('dbs-body');
+  const r = await api('/api/dbs');
+  if (!r.json || !r.json.ok) { msgRow(body, 5, errText(r), 'err'); return; }
+  const d = r.json;
+  document.getElementById('mode-badge').textContent = 'mode: ' + d.mode + (d.service ? ' (service ' + d.service.state + (d.service.code ? ': ' + d.service.code : '') + ')' : '');
+  if (!d.databases.length) { msgRow(body, 5, t('no_dbs')); return; }
+  body.textContent = '';
+  for (const db of d.databases) {
+    const tr = el('tr');
+    tr.appendChild(td(db.alias));
+    // db.state is a fixed server-side enum, but strip non-letters anyway
+    // before it becomes part of a class name.
+    tr.appendChild(td(db.state, 'st-' + String(db.state).replace(/[^A-Z]/g, '')));
+    tr.appendChild(td(db.path + (db.exists ? '' : t('missing')), 'mono'));
+    tr.appendChild(td(db.default ? '●' : ''));
+    const act = td('');
+    if (db.state !== 'UNLOCKED') {
+      act.appendChild(mkBtn('small', t('unlock'), () => doUnlock(db.alias)));
+      act.appendChild(document.createTextNode(' '));
+    }
+    if (db.state === 'UNLOCKED')
+      act.appendChild(mkBtn('small danger', t('revoke'), () => doLock(db.alias)));
+    tr.appendChild(act);
+    body.appendChild(tr);
+  }
+}
+
+async function doLock(alias) {
+  say(t('revoking', { a: alias }));
+  const r = await apiPost('/api/session/lock', { db: alias });
+  if (r.json && r.json.ok) { say(t('revoked', { a: alias })); }
+  else say(t('revoke_fail') + errText(r), true);
+  loadDbs();
+}
+
+async function doUnlock(alias) {
+  say(t('approval_creating', { a: alias }));
+  const r = await apiPost('/api/unlock', { db: alias });
+  if (r.json && r.json.ok && r.json.url) {
+    say(t('approval_opened', { a: alias }));
+    window.open(r.json.url, '_blank', 'noopener');
+    setTimeout(loadDbs, 5000);
+  } else say(t('approval_fail') + errText(r), true);
+}
+
+// --- audit ---
+const AUTH_RE = /login|entry\.|unlock|cookies|create/i;
+function renderAuditRows(tbody, events, authOnly) {
+  const rows = events.filter((e) => !authOnly || AUTH_RE.test(e.action || ''));
+  if (!rows.length) { msgRow(tbody, 7, t('no_records')); return; }
+  tbody.textContent = '';
+  for (const e of rows) {
+    const tr = el('tr');
+    for (const k of ['ts', 'agent', 'action', 'target', 'decision', 'result_code', 'db'])
+      tr.appendChild(td(e[k]));
+    tbody.appendChild(tr);
+  }
+}
+
+async function loadAudit() {
+  const body = document.getElementById('audit-body');
+  const q = new URLSearchParams();
+  const a = document.getElementById('f-agent').value.trim();
+  const ac = document.getElementById('f-action').value.trim();
+  const n = parseInt(document.getElementById('f-limit').value, 10);
+  if (a) q.set('agent', a);
+  if (ac) q.set('action', ac);
+  q.set('limit', String(Number.isInteger(n) ? n : 100));
+  const r = await api('/api/audit?' + q);
+  if (!r.json || !r.json.ok) { msgRow(body, 7, errText(r), 'err'); return; }
+  renderAuditRows(body, r.json.events, false);
+  renderAuditRows(document.getElementById('auth-body'), r.json.events, true);
+}
+
+// --- agents ---
+const FIELDS = [
+  ['allowed', 'f_allowed'],
+  ['require_approval', 'f_require_approval'],
+  ['allowed_entries', 'allowed_entries'],
+  ['denied_entries', 'denied_entries'],
+  ['allowed_hosts', 'allowed_hosts'],
+];
+const csvToArr = (s) => s.split(',').map((x) => x.trim()).filter(Boolean);
+
+async function loadAgents() {
+  const list = document.getElementById('agents-list');
+  const r = await api('/api/agents');
+  if (!r.json || !r.json.ok) { list.textContent = ''; list.appendChild(el('div', 'err', errText(r))); return; }
+  const agents = r.json.agents || {};
+  const names = Object.keys(agents);
+  list.textContent = '';
+  if (!names.length) { list.appendChild(el('div', 'sub', t('no_agents'))); return; }
+  for (const name of names) {
+    const pol = agents[name] || {};
+    const fs = el('fieldset', 'agent');
+    fs.appendChild(el('legend', null, name));
+    const grid = el('div', 'agrid');
+    const inputs = [];
+    for (const [f, label] of FIELDS) {
+      grid.appendChild(el('label', null, t(label)));
+      const inp = document.createElement('input');
+      inp.value = (pol[f] || []).join(', ');
+      inp.dataset.field = f;
+      inputs.push(inp);
+      grid.appendChild(inp);
+    }
+    fs.appendChild(grid);
+    const arow = el('div', 'arow');
+    arow.appendChild(mkBtn('small', t('save'), () => saveAgent(name, inputs)));
+    arow.appendChild(mkBtn('small danger', t('del'), () => delAgent(name)));
+    fs.appendChild(arow);
+    list.appendChild(fs);
+  }
+}
+
+async function saveAgent(name, inputs) {
+  const policy = {};
+  for (const i of inputs) policy[i.dataset.field] = csvToArr(i.value);
+  say(t('saving', { a: name }));
+  const r = await apiPost('/api/agents', { name, policy });
+  if (r.json && r.json.ok) say(t('saved', { a: name }));
+  else say(t('save_fail') + errText(r), true);
+  loadAgents();
+}
+
+async function delAgent(name) {
+  if (!confirm(t('del_confirm', { a: name }))) return;
+  const r = await apiPost('/api/agents', { name, delete: true });
+  if (r.json && r.json.ok) say(t('deleted', { a: name }));
+  else say(t('del_fail') + errText(r), true);
+  loadAgents();
+}
+
+document.getElementById('btn-agent-new').addEventListener('click', async () => {
+  const name = document.getElementById('new-agent-name').value.trim();
+  if (!name) { say(t('name_required'), true); return; }
+  const r = await apiPost('/api/agents', { name, policy: { allowed: [] } });
+  if (r.json && r.json.ok) { document.getElementById('new-agent-name').value = ''; say(t('agent_added', { a: name })); }
+  else say(t('add_fail') + errText(r), true);
+  loadAgents();
+});
+
+document.getElementById('btn-dbs-reload').addEventListener('click', loadDbs);
+document.getElementById('btn-audit-reload').addEventListener('click', loadAudit);
+document.getElementById('btn-shutdown').addEventListener('click', async () => {
+  if (!confirm(t('shutdown_confirm'))) return;
+  await apiPost('/api/shutdown', {});
+  say(t('shutdown_done'));
+});
+
+loadDbs();
+loadAudit();
+loadAgents();
+</script>
+</body>
+</html>

@@ -1,0 +1,298 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title data-i18n="{{TITLE_KEY}}">{{ACTION_TITLE}} - KeePass Agent</title>
+<style>
+  :root { color-scheme: light dark; --accent: #2670dc; }
+  * { box-sizing: border-box; }
+  body { font-family: system-ui, sans-serif; max-width: 480px; margin: 8vh auto; padding: 0 18px; }
+  .card { border: 1px solid #8884; border-radius: 14px; padding: 26px; }
+  h1 { font-size: 22px; margin: 0 0 5px; }
+  .alias { color: var(--accent); overflow-wrap: anywhere; }
+  .sub, .path, .key { color: #888; font-size: 13px; line-height: 1.5; margin: 8px 0; overflow-wrap: anywhere; }
+  label { display: block; font-size: 14px; margin: 16px 0 6px; }
+  input:not([type=hidden]), select { width: 100%; padding: 12px; font-size: 16px; border: 1px solid #8886; border-radius: 8px; background: Canvas; color: CanvasText; }
+  button { width: 100%; padding: 12px; font-size: 15px; border: 0; border-radius: 8px; cursor: pointer; margin-top: 16px; }
+  .primary { background: var(--accent); color: white; font-weight: 650; }
+  .ghost { background: transparent; border: 1px solid #8886; margin-top: 8px; }
+  .newdb { margin-top: 22px; border-top: 1px solid #8884; padding-top: 14px; }
+  .newdb summary { cursor: pointer; font-size: 14px; color: var(--accent); }
+  .skip { display: inline; font-size: 12px; font-weight: 400; color: #888; margin: 0 0 0 8px; }
+  .skip input { width: auto; vertical-align: -1px; }
+  input[readonly] { background: #8882; }
+  #msg { min-height: 22px; font-size: 14px; margin-top: 12px; }
+  .err { color: #dc2626; } .ok { color: #16a34a; }
+  .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid #8886; border-top-color: var(--accent); border-radius: 50%; animation: spin .8s linear infinite; vertical-align: -2px; margin-right: 8px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .lang { position: fixed; top: 10px; right: 12px; display: flex; gap: 4px; }
+  .lang button { width: auto; padding: 3px 9px; margin: 0; font-size: 12px; background: transparent; border: 1px solid #8886; color: #888; }
+  .lang button.on { border-color: var(--accent); color: var(--accent); font-weight: 700; }
+  a { color: var(--accent); }
+</style>
+</head>
+<body>
+<div class="lang">
+  <button type="button" data-lang="en">EN</button>
+  <button type="button" data-lang="ko">한국어</button>
+</div>
+<main class="card" data-db-state="{{DB_STATE}}">
+  <h1 data-i18n="{{TITLE_KEY}}">{{ACTION_TITLE}}</h1>
+  <div class="alias">{{DB}}</div>
+  <div class="sub"{{DESC_ATTR}}>{{ACTION_DESCRIPTION}}</div>
+  <div class="path">{{PATH}}</div>
+  <div class="key">{{KEYFILE}}</div>
+  <div class="key">{{AGENT_FIELD}}</div>
+  <form id="credential-form" autocomplete="off" data-async>
+    <input type="hidden" name="t" value="{{TOKEN}}">
+    {{DB_SELECT}}
+    {{PATH_FIELD}}
+    {{ENTRY_FIELDS}}
+    {{COLLECT_FIELDS}}
+    {{PASSWORD_FIELD}}
+    {{CONFIRM_FIELD}}
+    {{SESSION_FIELD}}
+    <button type="submit" class="primary" data-i18n="{{SUBMIT_KEY}}">{{SUBMIT_LABEL}}</button>
+  </form>
+  {{NEW_DB_SECTION}}
+  <form method="POST" action="/cancel?t={{TOKEN}}">
+    <button type="submit" class="ghost" data-i18n="cancel">Cancel</button>
+  </form>
+  <div id="msg" aria-live="polite"></div>
+  <button id="close-btn" class="primary" type="button" data-i18n="close" hidden>Close</button>
+  <div class="sub" style="margin-top:14px"><a href="/onboarding" target="_blank" rel="noopener" data-i18n="what_is_this">What is this page?</a></div>
+</main>
+<script>
+// --- i18n: English is the default; Korean is applied client-side. ---
+// Resolution: ?lang=en|ko → localStorage['kp-lang'] → 'en'. The choice is
+// shared across all kp web pages. Translated strings are only ever applied
+// via textContent/placeholder — never innerHTML.
+const STRINGS = {
+  en: {
+    title_create: 'Create database', title_entry: 'Add entry',
+    title_cookies: 'Sync cookies', title_unlock: 'Unlock database',
+    desc_create: 'The master password is used only on this PC to create and verify the KDBX and to protect the DPAPI session.',
+    desc_entry: 'The values you enter are saved as a new entry in the selected KDBX.',
+    desc_unlock: 'The master password is sent only to this PC\'s KPScript stdin.',
+    ck1a: '① In an open browser tab, sign in to', ck1b: '.',
+    ck2: '② Enter the ID and password you just used, or skip them.',
+    ck3a: '③ Submitting stores the browser\'s', ck3b: 'cookies and the credentials above in this entry.',
+    uses_keyfile: 'Using a key file', requested_by: 'Requested by agent:',
+    field_db: 'Database', field_session: 'Session lifetime',
+    sess_900: '15 minutes', sess_1800: '30 minutes', sess_3600: '1 hour',
+    sess_7200: '2 hours', sess_14400: '4 hours', sess_28800: '8 hours', sess_86400: '24 hours',
+    sess_saved: 'Saved value ({n} min)',
+    db_option: '{a} — {s}', db_option_default: '{a} — {s} · default',
+    field_path: 'Save path (.kdbx)', master_password: 'Master password',
+    confirm_password: 'Confirm password', confirm_ph: 'Re-enter the master password',
+    field_title: 'Title', field_username: 'Username', field_id: 'ID',
+    field_password: 'Password', field_url: 'URL', field_notes: 'Notes',
+    skip: 'Skip', field_alias: 'Alias', keyfile_optional: 'Key file (optional)',
+    new_db: 'Create a new database',
+    submit_create: 'Create and register', submit_entry: 'Add entry',
+    submit_cookies: 'Collect credentials', submit_unlock: 'Unlock',
+    cancel: 'Cancel', close: 'Close', what_is_this: 'What is this page?',
+    pw_newline: 'Passwords must not contain newline characters.',
+    verifying: 'Verifying locally…',
+    url_warn: '⚠ kp login will not run against this URL (only https or loopback http is allowed). It will still be saved.',
+    url_bad: '⚠ That does not look like a valid URL.',
+    warnings_suffix: ' (warnings: {w})',
+    done_create: 'Database created and registered: {db} ({status})',
+    done_entry: 'Entry added', done_unlock: 'Unlocked',
+    done_close_hint: '. You may close this window.',
+    failed: 'Failed: ', local_fail: 'The local request failed.',
+  },
+  ko: {
+    title_create: '새 DB 생성', title_entry: '엔트리 추가',
+    title_cookies: '쿠키 동기화', title_unlock: 'DB 잠금 해제',
+    desc_create: '마스터 비밀번호는 이 PC에서 KDBX 생성·검증과 DPAPI 세션 보호에만 사용됩니다.',
+    desc_entry: '입력한 내용이 선택한 KDBX의 새 엔트리로 저장됩니다.',
+    desc_unlock: '마스터 비밀번호는 이 PC의 KPScript stdin으로만 전달됩니다.',
+    ck1a: '① 열린 브라우저 탭에서', ck1b: '에 로그인하세요.',
+    ck2: '② 방금 사용한 아이디·비밀번호를 입력하거나 건너뛰세요.',
+    ck3a: '③ 버튼을 누르면 브라우저의', ck3b: '쿠키와 입력한 로그인 정보가 이 엔트리에 저장됩니다.',
+    uses_keyfile: '키 파일 사용', requested_by: '요청 에이전트:',
+    field_db: '데이터베이스', field_session: '세션 유지 시간',
+    sess_900: '15분', sess_1800: '30분', sess_3600: '1시간',
+    sess_7200: '2시간', sess_14400: '4시간', sess_28800: '8시간', sess_86400: '24시간',
+    sess_saved: '저장된 값 ({n}분)',
+    db_option: '{a} — {s}', db_option_default: '{a} — {s} · 기본',
+    field_path: '저장 경로 (.kdbx)', master_password: '마스터 비밀번호',
+    confirm_password: '비밀번호 확인', confirm_ph: '마스터 비밀번호 다시 입력',
+    field_title: '제목', field_username: '사용자 이름', field_id: '아이디',
+    field_password: '비밀번호', field_url: 'URL', field_notes: '메모',
+    skip: '건너뛰기', field_alias: '별칭', keyfile_optional: '키 파일 (선택)',
+    new_db: '새 DB 만들기',
+    submit_create: '생성 및 등록', submit_entry: '엔트리 추가',
+    submit_cookies: '로그인 정보 수집', submit_unlock: '잠금 해제',
+    cancel: '취소', close: '닫기', what_is_this: '이 페이지는 무엇인가요?',
+    pw_newline: '비밀번호에 줄바꿈 문자를 사용할 수 없습니다.',
+    verifying: '로컬에서 확인 중…',
+    url_warn: '⚠ 이 URL로는 kp login이 실행되지 않습니다 (https 또는 loopback http만 허용). 저장은 됩니다.',
+    url_bad: '⚠ URL 형식이 올바르지 않습니다.',
+    warnings_suffix: ' (경고: {w})',
+    done_create: 'DB 생성·등록 완료: {db} ({status})',
+    done_entry: '엔트리 추가 완료', done_unlock: '잠금 해제 완료',
+    done_close_hint: '. 이 창을 닫아도 됩니다.',
+    failed: '실패: ', local_fail: '로컬 요청에 실패했습니다.',
+  },
+};
+let LANG = 'en';
+const fill = (s, v) => (v ? s.replace(/\{(\w+)\}/g, (m, k) => (v[k] ?? m)) : s);
+function t(key, vars) { return fill(STRINGS[LANG]?.[key] ?? STRINGS.en[key] ?? key, vars); }
+function applyLang(lang) {
+  LANG = STRINGS[lang] ? lang : 'en';
+  document.documentElement.lang = LANG;
+  document.querySelectorAll('[data-i18n]').forEach((el) => {
+    const key = el.dataset.i18n;
+    let v = STRINGS[LANG][key] ?? STRINGS.en[key];
+    if (v == null) return;
+    if (el.dataset.i18nVars) {
+      let vars;
+      try { vars = JSON.parse(el.dataset.i18nVars); } catch {}
+      v = fill(v, vars);
+    }
+    el.textContent = el.tagName === 'TITLE' ? v + ' - KeePass Agent' : v;
+  });
+  document.querySelectorAll('[data-i18n-placeholder]').forEach((el) => {
+    const v = STRINGS[LANG][el.dataset.i18nPlaceholder] ?? STRINGS.en[el.dataset.i18nPlaceholder];
+    if (v != null) el.placeholder = v;
+  });
+  document.querySelectorAll('[data-i18n-title]').forEach((el) => {
+    const v = STRINGS[LANG][el.dataset.i18nTitle] ?? STRINGS.en[el.dataset.i18nTitle];
+    if (v != null) el.title = v;
+  });
+  document.querySelectorAll('.lang button').forEach((b) => { b.classList.toggle('on', b.dataset.lang === LANG); });
+}
+function setLang(lang) {
+  try { localStorage.setItem('kp-lang', lang); } catch {}
+  applyLang(lang);
+}
+if (document.querySelectorAll) {
+  document.querySelectorAll('.lang [data-lang]').forEach((b) =>
+    b.addEventListener('click', () => setLang(b.dataset.lang)));
+  let wanted = null;
+  try { wanted = new URLSearchParams(location.search).get('lang') || localStorage.getItem('kp-lang'); } catch {}
+  applyLang(wanted || 'en');
+}
+
+const message = document.getElementById('msg');
+const PUB = {{PUBKEY}};
+const b64u = (u) => btoa(String.fromCharCode(...new Uint8Array(u))).replaceAll('+','-').replaceAll('/','_').replaceAll('=','');
+async function encryptPayload(obj) {
+  const pub = await crypto.subtle.importKey('jwk', PUB, { name: 'RSA-OAEP', hash: 'SHA-256' }, false, ['wrapKey']);
+  const aes = await crypto.subtle.generateKey({ name: 'AES-GCM', length: 256 }, true, ['encrypt']);
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const ct = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, aes, new TextEncoder().encode(JSON.stringify(obj)));
+  const ek = await crypto.subtle.wrapKey('raw', aes, pub, { name: 'RSA-OAEP' });
+  return b64u(ek) + '.' + b64u(iv) + '.' + b64u(ct);
+}
+const dbSelect = document.querySelector('select[name="db"]');
+const dynamicLockEls = document.querySelectorAll('[data-dynamic-lock]');
+function syncLockFields() {
+  const state = dbSelect
+    ? (dbSelect.selectedOptions[0]?.dataset.state || '')
+    : (document.querySelector('main')?.dataset.dbState || '');
+  dynamicLockEls.forEach((el) => { el.style.display = state === 'UNLOCKED' ? 'none' : ''; });
+}
+if (dbSelect) dbSelect.addEventListener('change', syncLockFields);
+syncLockFields();
+
+document.querySelectorAll('input[data-skip]').forEach((cb) => {
+  const target = document.getElementById(cb.dataset.skip);
+  const apply = () => { if (target) { target.readOnly = cb.checked; if (cb.checked) target.value = ''; } };
+  cb.addEventListener('change', apply);
+  apply();
+});
+
+const closeBtn = document.getElementById('close-btn');
+function setBusy(busy) {
+  document.querySelectorAll('input,select,textarea,button').forEach((el) => { el.disabled = busy; });
+}
+function finishPage(text) {
+  message.className = 'ok';
+  message.textContent = text;
+  document.querySelectorAll('input,select,textarea').forEach((el) => { el.disabled = true; });
+  document.querySelectorAll('button').forEach((el) => { el.hidden = true; });
+  closeBtn.hidden = false;
+  closeBtn.disabled = false;
+}
+closeBtn.addEventListener('click', () => { window.close(); });
+
+// Entry-add URL policy hint: https is always fine; http only for loopback.
+// The entry is still stored either way — the warning only says `kp login`
+// will refuse to send credentials to it (broker egress policy).
+const urlInput = document.getElementById('url');
+if (urlInput) {
+  const hint = document.createElement('div');
+  hint.className = 'sub err';
+  urlInput.insertAdjacentElement('afterend', hint);
+  const checkUrl = () => {
+    const v = urlInput.value.trim();
+    let warn = '';
+    if (v) {
+      try {
+        const u = new URL(v);
+        const loop = ['127.0.0.1', 'localhost', '[::1]'].includes(u.hostname.replace(/\.+$/, ''));
+        if (!(u.protocol === 'https:' || (u.protocol === 'http:' && loop)))
+          warn = t('url_warn');
+      } catch { warn = t('url_bad'); }
+    }
+    hint.textContent = warn;
+  };
+  urlInput.addEventListener('input', checkUrl);
+  checkUrl();
+}
+
+document.querySelectorAll('form[data-async]').forEach((form) => {
+  form.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const passwords = form.querySelectorAll('input[type=password]');
+    const obj = {};
+    for (const [k, v] of new FormData(form).entries()) { if (v !== '') obj[k] = v; }
+    for (const i of passwords) {
+      if (/[\r\n]/.test(i.value)) {
+        message.className = 'err';
+        message.textContent = t('pw_newline');
+        return;
+      }
+    }
+    setBusy(true);
+    message.className = '';
+    message.textContent = '';
+    const spin = document.createElement('span');
+    spin.className = 'spinner';
+    message.appendChild(spin);
+    message.appendChild(document.createTextNode(t('verifying')));
+    try {
+      const p = await encryptPayload(obj);
+      const tk = obj.t || '';
+      // Encrypted payload travels in the POST body only — never in a URL.
+      const response = await fetch('/unlock', { method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded' }, body: `t=${encodeURIComponent(tk)}&p=${p}`, cache: 'no-store' });
+      const result = await response.json();
+      passwords.forEach((i) => { i.value = ''; });
+      if (result.ok) {
+        const warnText = result.warnings?.length ? t('warnings_suffix', { w: result.warnings.join('; ') }) : '';
+        finishPage((result.mode === 'create'
+          ? t('done_create', { db: result.database, status: result.status })
+          : result.mode === 'entry'
+          ? t('done_entry') + (result.database ? `: ${result.database}` : '')
+          : t('done_unlock') + (result.database ? `: ${result.database}` : '') + t('done_close_hint')) + warnText);
+      } else {
+        setBusy(false);
+        message.className = 'err';
+        message.textContent = t('failed') + (result.code || result.error || `HTTP ${response.status}`);
+        if (passwords[0]) passwords[0].focus();
+      }
+    } catch {
+      passwords.forEach((i) => { i.value = ''; });
+      setBusy(false);
+      message.className = 'err';
+      message.textContent = t('local_fail');
+    }
+  });
+});
+</script>
+</body>
+</html>
