@@ -82,6 +82,7 @@ function kp(args: string[], env: Record<string, string | undefined> = {}): KpRun
 let loginServer: Server;
 let loginPort = 0;
 let svc: ChildProcess | null = null;
+let svcErr = '';
 
 function startSvc(): Promise<void> {
   return new Promise((resolve, reject) => {
@@ -95,6 +96,7 @@ function startSvc(): Promise<void> {
     if (process.platform !== 'win32')
       env.KEEPASS_AGENT_HELPER_CMD = JSON.stringify([process.execPath, MOCK_HELPER]);
     svc = spawn(process.execPath, [SVC_TS], { env, stdio: ['ignore', 'pipe', 'pipe'] });
+    svc.stderr!.on('data', (d) => { svcErr += d; });
     let buf = '';
     const to = setTimeout(() => reject(new Error(`service did not report ready: ${buf}`)), 20_000);
     svc.stdout!.on('data', (d) => {
@@ -202,7 +204,7 @@ test('hardened — search returns entries via the service (POSIX full flow)', ()
 
 test('hardened — login pipes secret service-side; agent sees status only', { skip: process.platform === 'win32' }, async () => {
   const r = kp(['login', '--db', ALIAS, '--entry', 'UUID-1', '--worker', 'local-test']);
-  assert.equal(r.json?.success, true, r.stdout + r.stderr);
+  assert.equal(r.json?.success, true, r.stdout + r.stderr + '\nsvc stderr: ' + svcErr);
   assert.equal(r.json?.status, 'authenticated');
   assert.ok(!r.stdout.includes('s3cr3t'), 'stdout must not carry the secret');
 });
