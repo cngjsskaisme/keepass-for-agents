@@ -9,7 +9,7 @@ import { TEST_HOME } from '../fixtures/tmp-home.ts';
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawn, spawnSync, type ChildProcess } from 'node:child_process';
-import { createServer, type Server } from 'node:http';
+import type { Server } from 'node:http';
 import { chmodSync, mkdirSync, writeFileSync, existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -141,25 +141,22 @@ before(async () => {
       assert.equal(r.status, 0, `icacls ${p}: ${r.stderr || r.stdout}`);
     }
   }
-  loginServer = createServer((req, res) => {
-    let b = '';
-    req.on('data', (c) => b += c);
-    req.on('end', () => {
-      const p = new URLSearchParams(b);
-      const ok = p.get('password') === 's3cr3t' && p.get('username') === 'agent1';
-      res.writeHead(ok ? 200 : 403, { 'content-type': 'text/plain' });
-      res.end(ok ? 'welcome' : 'invalid credentials');
-    });
+  // The login endpoint lives in a child process — kp() uses spawnSync, which
+  // blocks this test's event loop; an in-process server could never answer.
+  loginServer = spawn(process.execPath, [join(__dir, '..', 'fixtures', 'login-server.mjs')], { stdio: ['ignore', 'pipe', 'ignore'] }) as any;
+  loginPort = await new Promise<number>((resolve, reject) => {
+    let p = '';
+    (loginServer as any).stdout.on('data', (d: Buffer) => { p += d; });
+    const t = setInterval(() => { if (p) { clearInterval(t); resolve(parseInt(p, 10)); } }, 20);
+    setTimeout(() => reject(new Error('login server did not report a port')), 10_000);
   });
-  await new Promise<void>((r) => loginServer.listen(0, '127.0.0.1', () => r()));
-  loginPort = (loginServer.address() as any).port;
   saveConfig(baseCfg());
   await startSvc();
 });
 
 after(async () => {
   await stopSvc();
-  loginServer?.close();
+  (loginServer as any)?.kill?.();
 });
 
 test('hardened — kp status reports mode/service/isolation while service is up', () => {
