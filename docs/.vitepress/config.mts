@@ -70,6 +70,7 @@ const koSidebar = [
 export default defineConfig({
   title: 'keepass-agent',
   description: 'A KeePass-backed credential gateway for AI agents',
+  base: '/keepass-for-agents/',
   cleanUrls: true,
   lastUpdated: true,
   head: [
